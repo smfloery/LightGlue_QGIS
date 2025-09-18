@@ -3,7 +3,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Callable, List, Optional, Tuple, Union
 
-import cv2
+# import cv2
+from skimage import io, transform
 import kornia
 import numpy as np
 import torch
@@ -73,12 +74,11 @@ def read_image(path: Path, grayscale: bool = False) -> np.ndarray:
     """Read an image from path as RGB or grayscale"""
     if not Path(path).exists():
         raise FileNotFoundError(f"No image at path {path}.")
-    mode = cv2.IMREAD_GRAYSCALE if grayscale else cv2.IMREAD_COLOR
-    image = cv2.imread(str(path), mode)
+    
+    image = io.imread(str(path), as_gray = True if grayscale else False)
+    
     if image is None:
         raise IOError(f"Could not read image at {path}.")
-    if not grayscale:
-        image = image[..., ::-1]
     return image
 
 
@@ -112,14 +112,7 @@ def resize_image(
         scale = (w_new / w, h_new / h)
     else:
         raise ValueError(f"Incorrect new size: {size}")
-    mode = {
-        "linear": cv2.INTER_LINEAR,
-        "cubic": cv2.INTER_CUBIC,
-        "nearest": cv2.INTER_NEAREST,
-        "area": cv2.INTER_AREA,
-    }[interp]
-    return cv2.resize(image, (w_new, h_new), interpolation=mode), scale
-
+    return transform.resize(image, (w_new, h_new), order=1, preserve_range=True)
 
 def load_image(path: Path, resize: int = None, **kwargs) -> torch.Tensor:
     image = read_image(path)
